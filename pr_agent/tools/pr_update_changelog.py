@@ -18,8 +18,11 @@ CHANGELOG_LINES = 50
 
 class PRUpdateChangelog:
     def __init__(self, pr_url: str, cli_mode=False, args=None):
-
+    
         self.git_provider = get_git_provider()(pr_url)
+        if 'gitlab' in pr_url:
+            from pr_agent.git_providers import GitlabProvider
+            self.git_provider = GitlabProvider(pr_url)
         self.main_language = get_main_pr_language(
             self.git_provider.get_languages(), self.git_provider.get_files()
         )
@@ -46,7 +49,7 @@ class PRUpdateChangelog:
                                           get_settings().pr_update_changelog_prompt.user)
 
     async def run(self):
-        assert type(self.git_provider) == GithubProvider, "Currently only Github is supported"
+        assert isinstance(self.git_provider, (GithubProvider, GitlabProvider)), "Currently only Github and Gitlab are supported"
 
         logging.info('Updating the changelog...')
         if get_settings().config.publish_output:
@@ -105,23 +108,27 @@ class PRUpdateChangelog:
         return new_file_content, answer
 
     def _push_changelog_update(self, new_file_content, answer):
-        self.git_provider.repo_obj.update_file(path=self.changelog_file.path,
-                                               message="Update CHANGELOG.md",
-                                               content=new_file_content,
-                                               sha=self.changelog_file.sha,
-                                               branch=self.git_provider.get_pr_branch())
-        d = dict(body="CHANGELOG.md update",
-                 path=self.changelog_file.path,
-                 line=max(2, len(answer.splitlines())),
-                 start_line=1)
-
-        sleep(5)  # wait for the file to be updated
-        last_commit_id = list(self.git_provider.pr.get_commits())[-1]
-        try:
-            self.git_provider.pr.create_review(commit=last_commit_id, comments=[d])
-        except Exception:
-            # we can't create a review for some reason, let's just publish a comment
-            self.git_provider.publish_comment(f"**Changelog updates:**\n\n{answer}")
+        if isinstance(self.git_provider, GithubProvider):
+            self.git_provider.repo_obj.update_file(path=self.changelog_file.path,
+                                                   message="Update CHANGELOG.md",
+                                                   content=new_file_content,
+                                                   sha=self.changelog_file.sha,
+                                                   branch=self.git_provider.get_pr_branch())
+            d = dict(body="CHANGELOG.md update",
+                     path=self.changelog_file.path,
+                     line=max(2, len(answer.splitlines())),
+                     start_line=1)
+    
+            sleep(5)  # wait for the file to be updated
+            last_commit_id = list(self.git_provider.pr.get_commits())[-1]
+            try:
+                self.git_provider.pr.create_review(commit=last_commit_id, comments=[d])
+            except Exception:
+                # we can't create a review for some reason, let's just publish a comment
+                self.git_provider.publish_comment(f"**Changelog updates:**\n\n{answer}")
+        elif isinstance(self.git_provider, GitlabProvider):
+            # Implement the equivalent functionality for GitLab
+            pass
 
 
     def _get_default_changelog(self):
