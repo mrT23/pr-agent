@@ -335,7 +335,7 @@ class GitLabProvider(GitProvider):
     def get_commit_messages(self) -> str:
         """
         Retrieves the commit messages of a pull request.
-
+    
         Returns:
             str: A string containing the commit messages of the pull request.
         """
@@ -345,3 +345,40 @@ class GitLabProvider(GitProvider):
         except:
             commit_messages_str = ""
         return commit_messages_str
+    
+    def get_changelog_file(self):
+        """
+        Retrieves the changelog file from the GitLab repository.
+    
+        Returns:
+            str: The content of the changelog file.
+        """
+        try:
+            changelog_file = self.gl.projects.get(self.id_project).files.get("CHANGELOG.md", ref=self.mr.source_branch)
+            return changelog_file.decode()
+        except GitlabGetError:
+            return ""
+    
+    def update_changelog_file(self, new_content):
+        """
+        Updates the changelog file in the GitLab repository.
+    
+        Args:
+            new_content (str): The new content of the changelog file.
+        """
+        try:
+            self.gl.projects.get(self.id_project).files.update("CHANGELOG.md", ref=self.mr.source_branch, content=new_content)
+        except GitlabGetError:
+            pass
+    
+    def create_changelog_review(self, comment):
+        """
+        Creates a review for the changelog update in the GitLab repository.
+    
+        Args:
+            comment (str): The review comment.
+        """
+        try:
+            self.mr.notes.create({'body': comment})
+        except GitlabGetError:
+            pass
