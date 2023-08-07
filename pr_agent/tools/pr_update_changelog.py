@@ -46,7 +46,12 @@ class PRUpdateChangelog:
                                           get_settings().pr_update_changelog_prompt.user)
 
     async def run(self):
-        assert type(self.git_provider) == GithubProvider, "Currently only Github is supported"
+        if type(self.git_provider) == GithubProvider:
+            logging.info('Updating the changelog for GitHub...')
+        elif type(self.git_provider) == GitLabProvider:
+            logging.info('Updating the changelog for GitLab...')
+        else:
+            raise ValueError("Unsupported git provider")
 
         logging.info('Updating the changelog...')
         if get_settings().config.publish_output:
@@ -105,11 +110,20 @@ class PRUpdateChangelog:
         return new_file_content, answer
 
     def _push_changelog_update(self, new_file_content, answer):
-        self.git_provider.repo_obj.update_file(path=self.changelog_file.path,
-                                               message="Update CHANGELOG.md",
-                                               content=new_file_content,
-                                               sha=self.changelog_file.sha,
-                                               branch=self.git_provider.get_pr_branch())
+        if type(self.git_provider) == GithubProvider:
+            self.git_provider.repo_obj.update_file(path=self.changelog_file.path,
+                                                   message="Update CHANGELOG.md",
+                                                   content=new_file_content,
+                                                   sha=self.changelog_file.sha,
+                                                   branch=self.git_provider.get_pr_branch())
+        elif type(self.git_provider) == GitLabProvider:
+            # Use GitLab API to update the changelog file
+            self.git_provider.update_file(path=self.changelog_file.path,
+                                          message="Update CHANGELOG.md",
+                                          content=new_file_content,
+                                          branch=self.git_provider.get_pr_branch())
+        else:
+            raise ValueError("Unsupported git provider")
         d = dict(body="CHANGELOG.md update",
                  path=self.changelog_file.path,
                  line=max(2, len(answer.splitlines())),
