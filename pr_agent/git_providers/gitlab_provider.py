@@ -353,8 +353,9 @@ class GitLabProvider(GitProvider):
         Returns:
             str: The content of the changelog file.
         """
+        changelog_filename = get_settings().get("CHANGELOG_FILENAME", "CHANGELOG.md")
         try:
-            changelog_file = self.gl.projects.get(self.id_project).files.get("CHANGELOG.md", ref=self.mr.source_branch)
+            changelog_file = self.gl.projects.get(self.id_project).files.get(changelog_filename, ref=self.mr.source_branch)
             return changelog_file.decode()
         except GitlabGetError:
             return ""
@@ -366,8 +367,9 @@ class GitLabProvider(GitProvider):
         Args:
             new_content (str): The new content of the changelog file.
         """
+        changelog_filename = get_settings().get("CHANGELOG_FILENAME", "CHANGELOG.md")
         try:
-            self.gl.projects.get(self.id_project).files.update("CHANGELOG.md", ref=self.mr.source_branch, content=new_content)
+            self.gl.projects.get(self.id_project).files.update(changelog_filename, ref=self.mr.source_branch, content=new_content)
         except GitlabGetError:
             pass
     
