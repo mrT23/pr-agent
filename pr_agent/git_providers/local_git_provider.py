@@ -184,8 +184,9 @@ class LocalGitProvider(GitProvider):
         Returns:
             str: The content of the changelog file.
         """
+        changelog_filename = get_settings().get("CHANGELOG_FILENAME", "CHANGELOG.md")
         try:
-            with open(self.repo_path / "CHANGELOG.md", "r") as file:
+            with open(self.repo_path / changelog_filename, "r") as file:
                 return file.read()
         except FileNotFoundError:
             return ""
@@ -197,7 +198,8 @@ class LocalGitProvider(GitProvider):
         Args:
             new_content (str): The new content of the changelog file.
         """
-        with open(self.repo_path / "CHANGELOG.md", "w") as file:
+        changelog_filename = get_settings().get("CHANGELOG_FILENAME", "CHANGELOG.md")
+        with open(self.repo_path / changelog_filename, "w") as file:
             file.write(new_content)
     
     def create_changelog_review(self, comment):
