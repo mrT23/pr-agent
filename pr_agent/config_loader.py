@@ -25,6 +25,10 @@ global_settings = Dynaconf(
     ]]
 )
 
+default_config = {
+    "EXTRA.BAD_FILES_EXTENSIONS": []
+}
+
 
 def get_settings():
     try:
