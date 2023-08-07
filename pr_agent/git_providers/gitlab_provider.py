@@ -37,6 +37,7 @@ class GitLabProvider(GitProvider):
         self.RE_HUNK_HEADER = re.compile(
             r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@[ ]?(.*)")
         self.incremental = incremental
+        self._prepare_repo()
 
     def is_supported(self, capability: str) -> bool:
         if capability in ['get_issue_comments', 'create_inline_comment', 'publish_inline_comments']:
@@ -335,7 +336,7 @@ class GitLabProvider(GitProvider):
     def get_commit_messages(self) -> str:
         """
         Retrieves the commit messages of a pull request.
-
+    
         Returns:
             str: A string containing the commit messages of the pull request.
         """
@@ -345,3 +346,15 @@ class GitLabProvider(GitProvider):
         except:
             commit_messages_str = ""
         return commit_messages_str
+    
+    def _get_changlog_file(self):
+        # Implement the method to get the changelog file from the GitLab repository
+        pass
+    
+    def _prepare_repo(self):
+        # Implement the method to prepare the repository for the changelog update process
+        pass
+    
+    def _push_changelog_update(self):
+        # Implement the method to push the changelog update to the GitLab repository
+        pass
