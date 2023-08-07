@@ -176,3 +176,36 @@ class LocalGitProvider(GitProvider):
 
     def get_labels(self):
         raise NotImplementedError('Getting labels is not implemented for the local git provider')
+    
+    def get_changelog_file(self):
+        """
+        Retrieves the changelog file from the local repository.
+    
+        Returns:
+            str: The content of the changelog file.
+        """
+        try:
+            with open(self.repo_path / "CHANGELOG.md", "r") as file:
+                return file.read()
+        except FileNotFoundError:
+            return ""
+    
+    def update_changelog_file(self, new_content):
+        """
+        Updates the changelog file in the local repository.
+    
+        Args:
+            new_content (str): The new content of the changelog file.
+        """
+        with open(self.repo_path / "CHANGELOG.md", "w") as file:
+            file.write(new_content)
+    
+    def create_changelog_review(self, comment):
+        """
+        Creates a review for the changelog update in the local repository.
+    
+        Args:
+            comment (str): The review comment.
+        """
+        with open(self.repo_path / "CHANGELOG_REVIEW.md", "w") as file:
+            file.write(comment)
