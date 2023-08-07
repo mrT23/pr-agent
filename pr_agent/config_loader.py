@@ -22,7 +22,8 @@ global_settings = Dynaconf(
         "settings/pr_information_from_user_prompts.toml",
         "settings/pr_update_changelog_prompts.toml",
         "settings_prod/.secrets.toml"
-    ]]
+    ]],
+    CHANGELOG_FILENAME="CHANGELOG.md"
 )
 
 
