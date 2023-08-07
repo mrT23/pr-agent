@@ -110,25 +110,26 @@ class PRUpdateChangelog:
         return new_file_content, answer
 
     def _push_changelog_update(self, new_file_content, answer):
+        changelog_filename = get_settings().get("CHANGELOG_FILENAME", "CHANGELOG.md")
         if type(self.git_provider) == GithubProvider:
             self.git_provider.repo_obj.update_file(path=self.changelog_file.path,
-                                                   message="Update CHANGELOG.md",
+                                                   message=f"Update {changelog_filename}",
                                                    content=new_file_content,
                                                    sha=self.changelog_file.sha,
                                                    branch=self.git_provider.get_pr_branch())
         elif type(self.git_provider) == GitLabProvider:
             # Use GitLab API to update the changelog file
             self.git_provider.update_file(path=self.changelog_file.path,
-                                          message="Update CHANGELOG.md",
+                                          message=f"Update {changelog_filename}",
                                           content=new_file_content,
                                           branch=self.git_provider.get_pr_branch())
         else:
             raise ValueError("Unsupported git provider")
-        d = dict(body="CHANGELOG.md update",
+        d = dict(body=f"{changelog_filename} update",
                  path=self.changelog_file.path,
                  line=max(2, len(answer.splitlines())),
                  start_line=1)
-
+    
         sleep(5)  # wait for the file to be updated
         last_commit_id = list(self.git_provider.pr.get_commits())[-1]
         try:
