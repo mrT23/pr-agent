@@ -15,6 +15,66 @@ logger = logging.getLogger()
 
 
 class GitLabProvider(GitProvider):
+    def _get_changelog_file(self):
+        try:
+            self.changelog_file = self.gl.projects.get(self.id_project).files.get("CHANGELOG.md", ref=self.mr.source_branch)
+            changelog_file_lines = self.changelog_file.decode().splitlines()
+            changelog_file_lines = changelog_file_lines[:CHANGELOG_LINES]
+            self.changelog_file_str = "\n".join(changelog_file_lines)
+        except Exception:
+            self.changelog_file_str = ""
+            if self.commit_changelog:
+                logging.info("No CHANGELOG.md file found in the repository. Creating one...")
+                changelog_file = self.gl.projects.get(self.id_project).files.create({
+                    'file_path': 'CHANGELOG.md',
+                    'branch': self.mr.source_branch,
+                    'content': '',
+                    'commit_message': 'add CHANGELOG.md'
+                })
+                self.changelog_file = changelog_file
+
+        if not self.changelog_file_str:
+            self.changelog_file_str = self._get_default_changelog()
+
+    async def _prepare_prediction(self, model: str):
+        logging.info('Getting MR diff...')
+        self.patches_diff = get_mr_diff(self.gl, self.token_handler, model)
+        logging.info('Getting AI prediction...')
+        self.prediction = await self._get_prediction(model)
+
+    async def _get_prediction(self, model: str):
+        variables = copy.deepcopy(self.vars)
+        variables["diff"] = self.patches_diff  # update diff
+        environment = Environment(undefined=StrictUndefined)
+        system_prompt = environment.from_string(get_settings().pr_update_changelog_prompt.system).render(variables)
+        user_prompt = environment.from_string(get_settings().pr_update_changelog_prompt.user).render(variables)
+        if get_settings().config.verbosity_level >= 2:
+            logging.info(f"\nSystem prompt:\n{system_prompt}")
+            logging.info(f"\nUser prompt:\n{user_prompt}")
+        response, finish_reason = await self.ai_handler.chat_completion(model=model, temperature=0.2,
+                                                                        system=system_prompt, user=user_prompt)
+
+        return response
+
+    def _push_changelog_update(self, new_file_content, answer):
+        self.gl.projects.get(self.id_project).files.update({
+            'file_path': self.changelog_file.path,
+            'branch': self.mr.source_branch,
+            'content': new_file_content,
+            'commit_message': "Update CHANGELOG.md"
+        })
+        d = dict(body="CHANGELOG.md update",
+                 path=self.changelog_file.path,
+                 line=max(2, len(answer.splitlines())),
+                 start_line=1)
+
+        sleep(5)  # wait for the file to be updated
+        last_commit_id = list(self.mr.commits())[-1]
+        try:
+            self.mr.discussions.create({'body': f"**Changelog updates:**\n\n{answer}"})
+        except Exception:
+            # we can't create a review for some reason, let's just publish a comment
+            self.publish_comment(f"**Changelog updates:**\n\n{answer}")
 
     def __init__(self, merge_request_url: Optional[str] = None, incremental: Optional[bool] = False):
         gitlab_url = get_settings().get("GITLAB.URL", None)
