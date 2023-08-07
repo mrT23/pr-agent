@@ -124,8 +124,24 @@ class PRUpdateChangelog:
                 # we can't create a review for some reason, let's just publish a comment
                 self.git_provider.publish_comment(f"**Changelog updates:**\n\n{answer}")
         elif type(self.git_provider) == GitlabProvider:
-            # Add the appropriate GitLab API calls here
-            pass
+            self.git_provider.gl.projects.get(self.git_provider.id_project).files.update({
+                'file_path': self.changelog_file.path,
+                'branch': self.git_provider.mr.source_branch,
+                'content': new_file_content,
+                'commit_message': "Update CHANGELOG.md"
+            })
+            d = dict(body="CHANGELOG.md update",
+                     path=self.changelog_file.path,
+                     line=max(2, len(answer.splitlines())),
+                     start_line=1)
+        
+            sleep(5)  # wait for the file to be updated
+            last_commit_id = list(self.git_provider.mr.commits())[-1]
+            try:
+                self.git_provider.mr.discussions.create({'body': f"**Changelog updates:**\n\n{answer}"})
+            except Exception:
+                # we can't create a review for some reason, let's just publish a comment
+                self.git_provider.publish_comment(f"**Changelog updates:**\n\n{answer}")
 
 
     def _get_default_changelog(self):
