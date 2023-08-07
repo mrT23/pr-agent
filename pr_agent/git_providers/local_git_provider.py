@@ -7,6 +7,7 @@ from git import Repo
 
 from pr_agent.config_loader import _find_repository_root, get_settings
 from pr_agent.git_providers.git_provider import EDIT_TYPE, FilePatchInfo, GitProvider
+from pr_agent.algo.pr_processing import identify_reverted_commits
 
 
 class PullRequestMimic:
@@ -160,8 +161,10 @@ class LocalGitProvider(GitProvider):
 
     def get_pr_description(self):
         commits_diff = list(self.repo.iter_commits(self.target_branch_name + '..HEAD'))
-        # Get the commit messages and concatenate
-        commit_messages = " ".join([commit.message for commit in commits_diff])
+        # Identify reverted commits
+        reverted_commits = identify_reverted_commits(commits_diff, self.get_diff_files())
+        # Get the commit messages, excluding the messages of reverted commits, and concatenate
+        commit_messages = " ".join([commit.message for commit in commits_diff if commit not in reverted_commits])
         # TODO Handle the description better - maybe use gpt-3.5 summarisation here?
         return commit_messages[:200]  # Use max 200 characters
 
