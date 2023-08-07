@@ -349,12 +349,25 @@ class GitLabProvider(GitProvider):
     
     def _get_changlog_file(self):
         # Implement the method to get the changelog file from the GitLab repository
-        pass
+        try:
+            return self.gl.projects.get(self.id_project).files.get(file_path='CHANGELOG.md', ref=self.mr.source_branch)
+        except GitlabGetError:
+            return None
     
     def _prepare_repo(self):
         # Implement the method to prepare the repository for the changelog update process
-        pass
+        changelog_file = self._get_changlog_file()
+        if changelog_file is None:
+            self.gl.projects.get(self.id_project).files.create({
+                'file_path': 'CHANGELOG.md',
+                'branch': self.mr.source_branch,
+                'content': '',
+                'commit_message': 'Create CHANGELOG.md'
+            })
     
-    def _push_changelog_update(self):
+    def _push_changelog_update(self, new_file_content):
         # Implement the method to push the changelog update to the GitLab repository
-        pass
+        changelog_file = self._get_changlog_file()
+        if changelog_file is not None:
+            changelog_file.content = new_file_content
+            changelog_file.save(branch=self.mr.source_branch, commit_message='Update CHANGELOG.md')
