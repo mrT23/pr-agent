@@ -24,7 +24,7 @@ OUTPUT_BUFFER_TOKENS_HARD_THRESHOLD = 600
 PATCH_EXTRA_LINES = 3
 
 def get_pr_diff(git_provider: GitProvider, token_handler: TokenHandler, model: str,
-                add_line_numbers_to_hunks: bool = False, disable_extra_lines: bool = False) -> str:
+                add_line_numbers_to_hunks: bool = False, disable_extra_lines: bool = False) -> Tuple[List[str], int]:
     """
     Returns a string with the diff of the pull request, applying diff minimization techniques if needed.
 
@@ -75,7 +75,7 @@ def get_pr_diff(git_provider: GitProvider, token_handler: TokenHandler, model: s
     if deleted_file_names:
         deleted_list_str = DELETED_FILES_ + "\n".join(deleted_file_names)
         final_diff = final_diff + "\n\n" + deleted_list_str
-    return final_diff
+    return patches_extended, total_tokens
 
 
 def pr_generate_extended_diff(pr_languages: list, token_handler: TokenHandler,
@@ -284,3 +284,14 @@ def find_line_number_of_relevant_line_in_file(diff_files: List[FilePatchInfo],
                         absolute_position = start2 + delta - 1
                         break
     return position, absolute_position
+    
+    def identify_reverted_commits(commits: List[Commit], diff_files: List[FilePatchInfo]) -> List[Commit]:
+    reverted_commits = []
+    for commit in commits:
+        commit_changes = commit.diff(create_patch=True)
+        for commit_change in commit_changes:
+            for diff_file in diff_files:
+                if commit_change.a_path == diff_file.filename and commit_change.diff != diff_file.patch:
+                    reverted_commits.append(commit)
+                    break
+    return reverted_commits
