@@ -1,11 +1,11 @@
-name: Document a PR
-title: 'Sweep: '
-description: Generate Docstrings for relevant components in a PR
-labels: sweep
+name: Refactor Code
+title: 'Refactor: '
+description: Document the refactoring process for a specific component in a PR
+labels: refactor
 body:
   - type: textarea
-    id: description
+    id: refactor_description
     attributes:
-      label: Details
-      description: More details for Sweep
-      placeholder: We are migrating this function to ... version because ...
+      label: Refactor Details
+      description: Detailed description of the refactoring process
+      placeholder: We are refactoring this component because ...
