@@ -10,17 +10,11 @@ setup_logger()
 
 
 
-def run(inargs=None):
+def run(inargs=""):
     parser = argparse.ArgumentParser(description='AI based pull request analyzer', usage=
 """\
 Usage: cli.py --pr-url=<URL on supported git hosting service> <command> [<args>].
-For example:
-- cli.py --pr_url=... review
-- cli.py --pr_url=... describe
-- cli.py --pr_url=... improve
-- cli.py --pr_url=... ask "write me a poem about this PR"
-- cli.py --pr_url=... reflect
-- cli.py --issue_url=... similar_issue
+
 
 Supported commands:
 - review / review_pr - Add a review that includes a summary of the PR and specific suggestions for improvement.
@@ -54,12 +48,12 @@ For example: 'python cli.py --pr_url=... review --pr_reviewer.extra_instructions
         parser.print_help()
         return
 
-    command = args.command.lower()
-    get_settings().set("CONFIG.CLI_MODE", True)
+    command = args.command.lower().strip()
+    get_settings().set("CONFIG.CLI_MODE", False)
     if args.issue_url:
-        result = asyncio.run(PRAgent().handle_request(args.issue_url, [command] + args.rest))
+        result = asyncio.run(PRAgent(handle=true).handle_request(args.issue_url, [command] + args.rest))
     else:
-        result = asyncio.run(PRAgent().handle_request(args.pr_url, [command] + args.rest))
+        result = asyncio.run(PRAgent(handle=true).handle_request(args.pr_url, [command] + args.rest))
     if not result:
         parser.print_help()
 
